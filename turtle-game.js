@@ -8,14 +8,15 @@ var turtle_game = (function () {
     })();
     // end nonsense
 
-    var BULLET_SPEED = 5;
+    var BULLET_SPEED = 10;
 
-    function Bullet(x, y, direction) {
+    function Bullet(x, y, direction, turtle) {
         this.x = x;
         this.y = y;
         this.vx = 0;
         this.vy = 0;
         this.direction = direction;
+        this.turtle = turtle;
     }
 
     Bullet.prototype = {
@@ -25,6 +26,15 @@ var turtle_game = (function () {
             ctx.lineTo(this.x - 5 * this.vx, this.y - 5 * this.vy);
             ctx.strokeStyle = '#000';
             ctx.stroke();
+        },
+
+        checkHit: function checkHit(turtles) {
+            for(var ii in turtles) {
+                if (this.turtle == turtles[ii]) continue;
+                var turtle = turtles[ii];
+
+                return (this.x > turtle.x - turtle.r && this.x < turtle.x + turtle.r && this.y > turtle.y - turtle.r && this.y < turtle.y + turtle.r);
+            }
         },
 
         nextPosition: function nextPosition(ctx) {
@@ -61,7 +71,7 @@ var turtle_game = (function () {
         },
 
         shoot: function shoot() {
-            var b = new Bullet(this.x, this.y, this.h);
+            var b = new Bullet(this.x, this.y, this.h, this);
             b.vx = BULLET_SPEED * Math.cos(this.h);
             b.vy = BULLET_SPEED * Math.sin(this.h);
             return b;
@@ -129,7 +139,7 @@ var turtle_game = (function () {
             var self = this;
             this.bullets.forEach(function(b) {
                 b.nextPosition();
-                if (b.isOutOfBounds(self.canvas)) {
+                if (b.isOutOfBounds(self.canvas) || b.checkHit(self.turtles)) {
                     var index = self.bullets.indexOf(b);
                     if (index == -1) return;
                     self.bullets.splice(index, 1);
