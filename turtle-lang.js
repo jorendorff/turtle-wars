@@ -167,7 +167,7 @@ var turtle_lang = function () {
             return ctn(n.value);
 
         case 'name':
-            return ctn(env.get(n.name));
+            return ctn(n.name in env ? env[n.name] : null);
 
         case 'null':
             return ctn(null);
@@ -197,15 +197,12 @@ var turtle_lang = function () {
 
         case 'call':
             return evaluate(n.fn, env, function (f) {
-                console.log("GOT HERE 1");
-                return evaluate(n.arg, env, function (a) {
-                    console.log("GOT HERE 2");
+                return evaluate(n.args, env, function (a) {
                     if (typeof f === "function") {
-                        console.log("GOT HERE 3");
                         return ctn(f(a));
                     } else if (f.type === "lambda") {
                         var scope = Object.create(env);
-                        scope[f.arg] = a;
+                        scope[f.args] = a;
                         return evaluate_later(f.body, scope, ctn);
                     } else {
                         throw new Error("type error: tried to call " + f + "() but it is not a function");
@@ -243,19 +240,19 @@ var turtle_lang = function () {
 
     function test() {
         var globals = Object.create(null);
-        globals.inc = function (a) { console.log("inc(" + a + ")"); return a + 1; };
+        globals.inc = function (a) { return a + 1; };
         globals.add = function (a) { return function (b) { return a + b; } };
 
-        var t = new Thread("3");
+        var t = new Thread("3", globals);
         console.log(uneval(t.state.ast));
         while (t.alive)
             t.step();
         assert(t.result === 3);
 
-        t = new Thread("inc(3)");
+        t = new Thread("inc(3)", globals);
         while (t.alive)
             t.step();
-        // assert(t.result === 4);
+        assert(t.result === 4);
 
         console.log("all tests passed");
     }
