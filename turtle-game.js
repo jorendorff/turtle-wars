@@ -8,13 +8,24 @@ var turtle_game = (function () {
     })();
     // end nonsense
 
+    function Bullet(x, y) {
+        this.x = x;
+        this.y = y;
+        this.vx = 0;
+        this.vy = 0;
+    }
+
+
     function Turtle(ast, color) {
         this.ast = ast;
         this.x = 0;
         this.y = 0;
+        this.h = 0; // heading
         this.r = 9; // Turtle radius
         this.color = color;
     }
+
+    var BULLET_SPEED = 5;
 
     Turtle.prototype = {
         paintTo: function paintTo(ctx) {
@@ -24,6 +35,13 @@ var turtle_game = (function () {
             ctx.fill();
             ctx.strokeStyle = '#000';
             ctx.stroke();
+        },
+
+        shoot: function shoot() {
+            var b = new Bullet(x, y);
+            b.vx = BULLET_SPEED * Math.cos(this.h);
+            b.vy = BULLET_SPEED * Math.sin(this.h);
+            this.game.push(b);
         }
     };
 
@@ -32,12 +50,17 @@ var turtle_game = (function () {
         // program execution state, and the state of the bullets -- but let's
         // ignore bullets for now
         this.turtles = turtles;
+        this.bullets = [];
         this.canvas = canvas;
         this.w = canvas.width;
         this.h = canvas.height;
         this.alive = true;
 
         var self = this;
+        turtles.forEach(function (t) {
+            t.game = self;
+        });
+
         this.tick_callback = function () {
             if (self.alive) {
                 self.tick();
