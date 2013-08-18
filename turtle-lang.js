@@ -66,6 +66,7 @@ var turtle_lang = function () {
                 consume(")");
                 return e;
             } else if (t == "{") {
+                consume('{');
                 // infinite lookahead, whee!
                 var i = 0;
                 while (isName(lookAhead(i)))
@@ -82,6 +83,9 @@ var turtle_lang = function () {
                     consume("=>");
                 }
                 var body = parseExpr();
+                if (peek() != "}")
+                    throw new Error("expected '}'");
+                consume('}');
                 return out.func(args, body);
             }
         }
@@ -162,6 +166,7 @@ var turtle_lang = function () {
     function evaluate(n, env, ctn) {
         assert(typeof env == "object");
 
+        /*
         var orig = ctn;
         ctn = function (v) {
             var r = orig(v); 
@@ -169,6 +174,7 @@ var turtle_lang = function () {
                 console.log("FAIL FAIL FAIL:" + orig);
             return r;
         };
+*/
 
         switch (n.type) {
         case 'number':
@@ -216,7 +222,7 @@ var turtle_lang = function () {
                         return ctn(f(a));
                     } else if (f.type === "lambda") {
                         var scope = Object.create(env);
-                        scope[f.args] = a;
+                        scope[f.arg] = a;
                         return evaluate_later(f.body, scope, ctn);
                     } else {
                         throw new Error("type error: tried to call " + f + "() but it is not a function");
@@ -232,13 +238,11 @@ var turtle_lang = function () {
         var thisThread = this;
         this.alive = true;
         this.state = evaluate_later(ast, env, this._done.bind(this));
-        console.log(uneval(this.state));
     }
 
     Thread.prototype = {
         step: function () {
             var s = this.state;
-            console.log(uneval(s));
             this.state = evaluate(s.ast, s.env, s.ctn);
             assert(this.state != null);
         },
@@ -281,7 +285,8 @@ var turtle_lang = function () {
         ev("x=1", 1);
         ev("1,2", 2);
         ev("x = add 2 2, mul x 7", 28);
-
+        ev("!", null);
+        ev("{ 2 } !", 2);
         console.log("all tests passed");
     }
     test();
