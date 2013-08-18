@@ -8,7 +8,7 @@ var turtle_game = (function () {
     })();
     // end nonsense
 
-    var BULLET_SPEED = 2;
+    var BULLET_SPEED = 5;
 
     function Bullet(x, y, direction) {
         this.x = x;
@@ -35,7 +35,9 @@ var turtle_game = (function () {
         isOutOfBounds: function isOutOfBounds(canvas) {
             if (!canvas) return;
 
-            return (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height);
+            var result = (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height);
+
+            return result;
         }
     }
 
@@ -113,7 +115,7 @@ var turtle_game = (function () {
             ctx.fillStyle = "rgb(255,255,255)";
             var W = 4;
             ctx.fillRect(W, W, this.w - (2*W), this.h - (2*W));
-            
+
             this.turtles.forEach(function (t) {
                 t.paintTo(ctx);
             });
@@ -127,11 +129,10 @@ var turtle_game = (function () {
             var self = this;
             this.bullets.forEach(function(b) {
                 b.nextPosition();
-                if (!b.isOutOfBounds(self.canvas)) {
+                if (b.isOutOfBounds(self.canvas)) {
                     var index = self.bullets.indexOf(b);
                     if (index == -1) return;
                     self.bullets.splice(index, 1);
-                    console.log('removed');
                 }
             });
         },
