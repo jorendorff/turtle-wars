@@ -238,24 +238,37 @@ var turtle_lang = function () {
             throw new Error("assertion failed at " + new Error().stack/*.split('\n')[1]*/);
     }
 
-    function test() {
-        var globals = Object.create(null);
-        globals.inc = function (a) { return a + 1; };
-        globals.add = function (a) { return function (b) { return a + b; } };
 
+    // === Base environment
+
+    var globals = Object.create(null);
+    globals.add = function (a) { return function (b) { return a + b; } };
+    globals.neg = function (a) { return -a; };
+    globals.mul = function (a) { return function (b) { return a * b; } };
+    globals.div = function (a) { return function (b) { return a / b; } };
+
+
+    // === Tests
+
+    function test() {
         var t = new Thread("3", globals);
         console.log(uneval(t.state.ast));
         while (t.alive)
             t.step();
         assert(t.result === 3);
 
-        t = new Thread("inc(3)", globals);
+        t = new Thread("add 3 4", globals);
         while (t.alive)
             t.step();
-        assert(t.result === 4);
+        assert(t.result === 7);
 
         console.log("all tests passed");
     }
     test();
+
+    return {
+        Thread: Thread,
+        globals: globals
+    };
 
 }();
