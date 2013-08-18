@@ -8,13 +8,36 @@ var turtle_game = (function () {
     })();
     // end nonsense
 
-    function Bullet(x, y) {
+    var BULLET_SPEED = 2;
+
+    function Bullet(x, y, direction) {
         this.x = x;
         this.y = y;
         this.vx = 0;
         this.vy = 0;
+        this.direction = direction;
     }
 
+    Bullet.prototype = {
+        paintTo: function paintTo(ctx) {
+            ctx.beginPath();
+            ctx.moveTo(this.x, this.y);
+            ctx.lineTo(this.x - 5 * this.vx, this.y - 5 * this.vy);
+            ctx.strokeStyle = '#000';
+            ctx.stroke();
+        },
+
+        nextPosition: function nextPosition(ctx) {
+            this.x += this.vx;
+            this.y += this.vy;
+        },
+
+        isOutOfBounds: function isOutOfBounds(canvas) {
+            if (!canvas) return;
+
+            return (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height);
+        }
+    }
 
     function Turtle(ast, color) {
         this.ast = ast;
@@ -24,8 +47,6 @@ var turtle_game = (function () {
         this.r = 9; // Turtle radius
         this.color = color;
     }
-
-    var BULLET_SPEED = 5;
 
     Turtle.prototype = {
         paintTo: function paintTo(ctx) {
@@ -38,10 +59,10 @@ var turtle_game = (function () {
         },
 
         shoot: function shoot() {
-            var b = new Bullet(x, y);
+            var b = new Bullet(this.x, this.y, this.h);
             b.vx = BULLET_SPEED * Math.cos(this.h);
             b.vy = BULLET_SPEED * Math.sin(this.h);
-            this.game.push(b);
+            return b;
         }
     };
 
@@ -57,9 +78,6 @@ var turtle_game = (function () {
         this.alive = true;
 
         var self = this;
-        turtles.forEach(function (t) {
-            t.game = self;
-        });
 
         this.tick_callback = function () {
             if (self.alive) {
@@ -82,21 +100,40 @@ var turtle_game = (function () {
         start: function start() {
             var self = this;
             setTimeout(function () { self.tick(); }, 4);
+            this.turtles.forEach(function(t) {
+                self.bullets.push(t.shoot());
+            });
         },
 
         paint: function paint() {
+            var self = this;
             var ctx = this.canvas.getContext('2d');
             ctx.fillStyle = "rgb(0,0,0)";
             ctx.fillRect(0, 0, this.w, this.h);
             ctx.fillStyle = "rgb(255,255,255)";
             var W = 4;
             ctx.fillRect(W, W, this.w - (2*W), this.h - (2*W));
+            
             this.turtles.forEach(function (t) {
                 t.paintTo(ctx);
+            });
+
+            this.bullets.forEach(function (b) {
+                b.paintTo(ctx);
             });
         },
 
         tick: function tick() {
+            var self = this;
+            this.bullets.forEach(function(b) {
+                b.nextPosition();
+                if (!b.isOutOfBounds(self.canvas)) {
+                    var index = self.bullets.indexOf(b);
+                    if (index == -1) return;
+                    self.bullets.splice(index, 1);
+                    console.log('removed');
+                }
+            });
         },
 
         stop: function stop() {
