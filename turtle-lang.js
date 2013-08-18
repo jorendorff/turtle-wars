@@ -1,10 +1,10 @@
 var turtle_lang = function () {
     function isName(t) {
-        return t !== undefined && t.test(/^[a-zA-Z]+$/);
+        return t !== undefined && /^[a-zA-Z]+$/.test(t);
     }
 
     function isNumber(t) {
-        return t !== undefined && t.test(/^[0-9]+$/);
+        return t !== undefined && /^[0-9]+$/.test(t);
     }
 
     var builder = {
@@ -97,11 +97,12 @@ var turtle_lang = function () {
           call prim
         */
         function parseCall() {
-            var expr = prim();
+            var expr = parsePrim();
             var t = peek();
             while (canStartExpression(t)) {
-                var arg = prim();
+                var arg = parsePrim();
                 expr = out.call(expr, arg);
+                t = peek();
             }
             return expr;
         }
@@ -152,51 +153,112 @@ var turtle_lang = function () {
 
     // === Interpreter
 
-    function lambda(arg, body) { return {arg: arg, body: body}; }
+    function lambda(arg, body) { return {type: "lambda", arg: arg, body: body}; }
 
-    function eval(n, env, ctn) {
+    function evaluate_later(ast, env, ctn) {
+        return {type: "suspended thread state", ast: ast, env: env, ctn: ctn};
+    }
+
+    function evaluate(n, env, ctn) {
+        assert(typeof env == "object");
+
         switch (n.type) {
         case 'number':
             return ctn(n.value);
+
         case 'name':
             return ctn(env.get(n.name));
+
         case 'null':
             return ctn(null);
+
         case 'seq':
             var scope = Object.create(env);
-            if (n.elements.length === 2)
-                ;
+            for (var i = 0; i < n.elements; i++)
+                if (n.elements[i].type === 'assign')
+                    scope[n.elements[i].name] = null;
+            return evaluate(n.elements[0], scope, function (_) {
+                return evaluate_later(n.elements[1], scope, ctn);
+            });
+
+        case 'assign':
+            return evaluate(n.expr, env, function (v) {
+                env[n.name] = v;
+                ctn();
+            });
+
         case 'function':
             if (n.args.length === 0)
                 return ctn(lambda("_", n.body));
             else if (n.args.length === 1)
                 return ctn(lambda(n.args[0], n.body));
             else
-                return ctn(lambda(n.args[0], {type: 'function', args: n.args.slice(1), n.body}));
-        case 'call':
-            // evaluate fn
-            // evaluate arg
-            // apply
-            // pass result to ctn
-        }                
+                return ctn(lambda(n.args[0], {type: 'function', args: n.args.slice(1), body: n.body}));
 
-    function Thread(code) {
+        case 'call':
+            return evaluate(n.fn, env, function (f) {
+                console.log("GOT HERE 1");
+                return evaluate(n.arg, env, function (a) {
+                    console.log("GOT HERE 2");
+                    if (typeof f === "function") {
+                        console.log("GOT HERE 3");
+                        return ctn(f(a));
+                    } else if (f.type === "lambda") {
+                        var scope = Object.create(env);
+                        scope[f.arg] = a;
+                        return evaluate_later(f.body, scope, ctn);
+                    } else {
+                        throw new Error("type error: tried to call " + f + "() but it is not a function");
+                    }
+                });
+            });
+        }
+        throw new Error("internal error: " + uneval(n));
+    }
+
+    function Thread(code, env) {
         var ast = parse(code, builder);
         var thisThread = this;
         this.alive = true;
-        this.ctn = function () {
-            switch (ast.type) {
-            case 'number':
-                console.log(ast.value),
-            case 'name':
-                
-        };
+        this.state = evaluate_later(ast, env, this._done.bind(this));
     }
 
     Thread.prototype = {
         step: function () {
-            this.ctn();
+            var s = this.state;
+            this.state = evaluate(s.ast, s.env, s.ctn);
+        },
+
+        _done: function (v) {
+            this.alive = false;
+            this.result = v;
+            console.log("thread finished! value was: ", v);
         }
     };
+
+    function assert(t) {
+        if (t !== true)
+            throw new Error("assertion failed at " + new Error().stack/*.split('\n')[1]*/);
+    }
+
+    function test() {
+        var globals = Object.create(null);
+        globals.inc = function (a) { console.log("inc(" + a + ")"); return a + 1; };
+        globals.add = function (a) { return function (b) { return a + b; } };
+
+        var t = new Thread("3");
+        console.log(uneval(t.state.ast));
+        while (t.alive)
+            t.step();
+        assert(t.result === 3);
+
+        t = new Thread("inc(3)");
+        while (t.alive)
+            t.step();
+        // assert(t.result === 4);
+
+        console.log("all tests passed");
+    }
+    test();
 
 }();
