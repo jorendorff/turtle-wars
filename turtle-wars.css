@@ -1,0 +1,28 @@
+textarea {
+    border: 1px solid black;
+}
+
+div#turtle1 {
+    position: absolute;
+    left: 0;
+    width: 15%;
+    top: 0;
+    bottom: 0;
+}
+
+div#turtle2 {
+    position: absolute;
+    right: 0;
+    width: 15%;
+    top: 0;
+    bottom: 0;
+}
+
+div#arena {
+    position: absolute;
+    left: 15%;
+    right: 15%;
+    top: 0;
+    bottom: 0;
+    overflow: auto;
+}
