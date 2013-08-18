@@ -162,6 +162,14 @@ var turtle_lang = function () {
     function evaluate(n, env, ctn) {
         assert(typeof env == "object");
 
+        var orig = ctn;
+        ctn = function (v) {
+            var r = orig(v); 
+            if (r === undefined || r === null)
+                console.log("FAIL FAIL FAIL:" + orig);
+            return r;
+        };
+
         switch (n.type) {
         case 'number':
             return ctn(n.value);
@@ -177,14 +185,20 @@ var turtle_lang = function () {
             for (var i = 0; i < n.elements; i++)
                 if (n.elements[i].type === 'assign')
                     scope[n.elements[i].name] = null;
-            return evaluate(n.elements[0], scope, function (_) {
-                return evaluate_later(n.elements[1], scope, ctn);
-            });
+
+            var i = 0;
+            var go = function to_next(v) {
+                if (i === n.elements.length)
+                    return ctn(v);
+                else
+                    return evaluate_later(n.elements[i++], scope, to_next);
+            };
+            return go(null);
 
         case 'assign':
             return evaluate(n.expr, env, function (v) {
                 env[n.name] = v;
-                ctn();
+                return ctn(v);
             });
 
         case 'function':
@@ -218,18 +232,22 @@ var turtle_lang = function () {
         var thisThread = this;
         this.alive = true;
         this.state = evaluate_later(ast, env, this._done.bind(this));
+        console.log(uneval(this.state));
     }
 
     Thread.prototype = {
         step: function () {
             var s = this.state;
+            console.log(uneval(s));
             this.state = evaluate(s.ast, s.env, s.ctn);
+            assert(this.state != null);
         },
 
         _done: function (v) {
             this.alive = false;
             this.result = v;
             console.log("thread finished! value was: ", v);
+            return {type: "nothing to do"};
         }
     };
 
@@ -251,16 +269,18 @@ var turtle_lang = function () {
     // === Tests
 
     function test() {
-        var t = new Thread("3", globals);
-        console.log(uneval(t.state.ast));
-        while (t.alive)
-            t.step();
-        assert(t.result === 3);
+        function ev(code, val) {
+            var t = new Thread(code, globals);
+            while (t.alive)
+                t.step();
+            assert(t.result === val);
+        }
 
-        t = new Thread("add 3 4", globals);
-        while (t.alive)
-            t.step();
-        assert(t.result === 7);
+        ev("3", 3);
+        ev("add 3 4", 7);
+        ev("x=1", 1);
+        ev("1,2", 2);
+        ev("x = add 2 2, mul x 7", 28);
 
         console.log("all tests passed");
     }
