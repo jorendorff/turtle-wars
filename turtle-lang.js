@@ -411,7 +411,8 @@ var turtle_lang = function () {
     return {
         Thread: Thread,
         globals: globals,
-        Function: Function
+        Function: Function,
+        eval: turtle_eval
     };
 
 }();

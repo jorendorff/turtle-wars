@@ -8,6 +8,9 @@ var turtle_game = (function () {
     })();
     // end nonsense
 
+
+    // === Bullets
+
     var BULLET_SPEED = 10;
 
     function Bullet(x, y, direction, turtle) {
@@ -51,8 +54,38 @@ var turtle_game = (function () {
         }
     }
 
-    function Turtle(ast, color) {
-        this.ast = ast;
+
+    // === Turtles
+
+    var TURTLE_SPEED = 1;
+
+    function Turtle(code, color) {
+        var self = this;
+
+        // Set up the global functions for turtle_lang.
+        var g = Object.create(turtle_lang.globals);
+        g.shoot = function () {
+            self.game.bullets.push(self.shoot());  // i love oop
+            return null;
+        };
+        g.rt1 = function () { self.h += Math.PI / 180; return null; };
+        g.lt1 = function () { self.h -= Math.PI / 180; return null; };
+        g.fd1 = function () {
+            self.x += TURTLE_SPEED * Math.cos(self.h);
+            self.y += TURTLE_SPEED * Math.sin(self.h);
+
+            // If the turtle is out of bounds, move it back.
+            var limit = self.r + WALL_THICKNESS;
+            self.x = Math.max(limit, Math.min(self.x, self.game.canvas.width - limit));
+            self.y = Math.max(limit, Math.min(self.y, self.game.canvas.height - limit));
+            return null;
+        };
+        g.rt = turtle_lang.eval("{n => rep n {rt1!}}", g);
+        g.lt = turtle_lang.eval("{n => rep n {lt1!}}", g);
+        g.fd = turtle_lang.eval("{n => rep n {fd1!}}", g);
+
+        this.thread = new turtle_lang.Thread(code, g);
+
         this.x = 0;
         this.y = 0;
         this.h = 0; // heading
@@ -77,6 +110,9 @@ var turtle_game = (function () {
             return b;
         }
     };
+
+
+    // === Fights
 
     function Fight(turtles, canvas) {
         // the state of a fight is: the position of the turtles, their internal
@@ -103,18 +139,18 @@ var turtle_game = (function () {
                 requestAnimFrame(self.paint_callback);
             }
         };
-
-        this.paint_callback();
-        this.tick_callback();
     }
+
+    var WALL_THICKNESS = 4;
 
     Fight.prototype = {
         start: function start() {
             var self = this;
-            setTimeout(function () { self.tick(); }, 4);
             this.turtles.forEach(function(t) {
-                self.bullets.push(t.shoot());
+                t.game = self;
             });
+            this.paint_callback();
+            this.tick_callback();
         },
 
         paint: function paint() {
@@ -123,7 +159,7 @@ var turtle_game = (function () {
             ctx.fillStyle = "rgb(0,0,0)";
             ctx.fillRect(0, 0, this.w, this.h);
             ctx.fillStyle = "rgb(255,255,255)";
-            var W = 4;
+            var W = WALL_THICKNESS;
             ctx.fillRect(W, W, this.w - (2*W), this.h - (2*W));
 
             this.turtles.forEach(function (t) {
@@ -137,7 +173,13 @@ var turtle_game = (function () {
 
         tick: function tick() {
             var self = this;
-            this.bullets.forEach(function(b) {
+            for (var i = 0; i < 6; i++) {
+                this.turtles.forEach(function (t) {
+                    if (t.thread.alive)
+                        t.thread.step();
+                });
+            }
+            this.bullets.forEach(function (b) {
                 b.nextPosition();
                 if (b.isOutOfBounds(self.canvas) || b.checkHit(self.turtles)) {
                     var index = self.bullets.indexOf(b);

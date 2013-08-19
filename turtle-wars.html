@@ -11,12 +11,12 @@
           $("#fightbtn").click(function () {
               var canvas = $("canvas#field").get(0);
 
-              var brown = new turtle_game.Turtle($('#turtle1 textarea'), 'rgb(128,32,0)');
+              var brown = new turtle_game.Turtle($('#turtle1 textarea').val(), 'rgb(128,32,0)');
               brown.x = brown.r * 2;
               brown.y = brown.r * 2;
               brown.h = Math.random() * 2 * Math.PI;
 
-              var green = new turtle_game.Turtle($('#turtle2 textarea'), 'rgb(0,128,0)');
+              var green = new turtle_game.Turtle($('#turtle2 textarea').val(), 'rgb(0,128,0)');
               green.x = canvas.width - green.r * 2;
               green.y = canvas.height - green.r * 2;
               green.h = Math.random() * 2 * Math.PI;
@@ -29,10 +29,25 @@
   </head>
   <body>
     <div id="turtle1">
-      <textarea id="brown" rows="40"></textarea>
+      <textarea id="brown" rows="40"
+>forever {
+    fd 10,
+    rt 10,
+    shoot!
+}
+      </textarea>
     </div>
     <div id="turtle2">
-      <textarea id="green" rows="40"></textarea>
+      <textarea id="green" rows="40"
+>forever {
+    shoot!,
+    rep 20 {
+       fd 25,
+       shoot!
+    },
+    rt 157
+}
+</textarea>
     </div>
     <div id="arena">
       <h1>turtle wars <button id="fightbtn">Fight!</button></h1>
