@@ -289,9 +289,11 @@ var turtle_lang = function () {
     globals.false = false;
     globals['boolean?'] = function (x) { return typeof x === "boolean"; };
     globals.not = function (b) { return a === false || a === null; };
-    globals.select = function (a) { return function (b) { return function (c) {
-        return a === false || a === null ? c : b;
-    }; }; };
+    function _first(x)  { return function (_) { return x; }; }
+    function _second(_) { return function (x) { return x; }; }
+    globals.select = function (a) {
+        return (a === false || a === null) ? _second : _first;
+    };
     globals.if = turtle_eval("{a b c => (select a b c)!}");
 
     // Pairs and lists
