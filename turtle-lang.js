@@ -8,13 +8,13 @@ var turtle_lang = function () {
     }
 
     var builder = {
-        number:  function (t) {         return {type: 'number', value: parseInt(t)}; },
-        name:    function(t) {          return {type: 'name', name: t}; },
-        nil:     function() {           return {type: 'null'}; },
-        seq:     function(a) {          return {type: 'seq', elements: a}; },
-        assign:  function(name, expr) { return {type: 'assign', name: name, expr: expr}; },
-        func:    function(arg, body)  { return {type: 'function', arg: arg, body: body}; },
-        call:    function(fn, arg)    { return {type: 'call', fn: fn, arg: arg}; }
+        number:  function (p, t)          { return {pos: p, type: 'number', value: parseInt(t)}; },
+        name:    function (p, t)          { return {pos: p, type: 'name', name: t}; },
+        nil:     function (p)             { return {pos: p, type: 'null'}; },
+        seq:     function (p, a)          { return {pos: p, type: 'seq', elements: a}; },
+        assign:  function (p, name, expr) { return {pos: p, type: 'assign', name: name, expr: expr}; },
+        func:    function (p, arg, body)  { return {pos: p, type: 'function', arg: arg, body: body}; },
+        call:    function (p, fn, arg)    { return {pos: p, type: 'call', fn: fn, arg: arg}; }
     };
 
     function parse(code, out) {
@@ -38,6 +38,14 @@ var turtle_lang = function () {
             pos++;
         }
 
+        function startOfNext() {
+            return 0;
+        }
+
+        function endOfPrev() {
+            return 0;
+        }
+
         /*
           prim:
             number
@@ -48,16 +56,17 @@ var turtle_lang = function () {
             { args => expr }
         */
         function parsePrim() {
+            var p0 = startOfNext();
             var t = peek();
             if (isNumber(t)) {
                 consume(t);
-                return out.number(t);
+                return out.number([p0, p0 + t.length], t);
             } else if (isName(t)) {
                 consume(t);
-                return out.name(t);
+                return out.name([p0, p0 + t.length], t);
             } else if (t === "!") {
                 consume("!");
-                return out.nil();
+                return out.nil([p0, p0 + 1]);
             } else if (t == "(") {
                 consume("(");
                 var e = parseExpr();
@@ -86,13 +95,14 @@ var turtle_lang = function () {
                 if (peek() != "}")
                     throw new Error("expected '}'");
                 consume('}');
+                var p = [p0, endOfPrev()];
 
                 if (args.length === 0)
                     args.push("_");
 
                 var result = body;
                 while (args.length !== 0)
-                    result = out.func(args.pop(), result);
+                    result = out.func(p, args.pop(), result);
                 return result;
             } else {
                 throw new Error("syntax error: unexpected " +
@@ -111,11 +121,12 @@ var turtle_lang = function () {
             call prim
         */
         function parseCall() {
+            var p0 = startOfNext();
             var expr = parsePrim();
             var t = peek();
             while (canStartExpression(t)) {
                 var arg = parsePrim();
-                expr = out.call(expr, arg);
+                expr = out.call([p0, endOfPrev()], expr, arg);
                 t = peek();
             }
             return expr;
@@ -129,9 +140,12 @@ var turtle_lang = function () {
         function parseElement() {
             var t = peek();
             if (isName(t) && lookAhead(1) === "=") {
+                var p0 = startOfNext();
                 consume(t);
                 consume("=");
-                return out.assign(t, parseCall());
+                var rhs = parseCall();
+                var p1 = endOfPrev();
+                return out.assign([p0, p1], t, rhs);
             }
             return parseCall();
         }
@@ -149,6 +163,7 @@ var turtle_lang = function () {
             seq , element
         */
         function parseExpr() {
+            var p0 = startOfNext();
             var e = parseElement();
             var a = [e];
             var names = Object.create(null);
@@ -175,7 +190,7 @@ var turtle_lang = function () {
             if (a.length === 1)
                 return e;
             else
-                return out.seq(a);
+                return out.seq([p0, endOfPrev()], a);
         }
 
         var result = parseExpr();
