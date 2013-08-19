@@ -1,10 +1,10 @@
 var turtle_lang = function () {
     function isName(t) {
-        return t !== undefined && /^[a-zA-Z]+$/.test(t);
+        return t !== undefined && /^[A-Za-z]/.test(t);
     }
 
     function isNumber(t) {
-        return t !== undefined && /^[0-9]+$/.test(t);
+        return t !== undefined && /^[0-9]/.test(t);
     }
 
     var builder = {
@@ -18,7 +18,7 @@ var turtle_lang = function () {
     };
 
     function parse(code, out) {
-        var tokens = code.match(/\s*([A-Za-z]+|[0-9]+|=>|\S)/g);
+        var tokens = code.match(/\s*([A-Za-z][A-Za-z0-9?-]+|[0-9]+|=>|\S)/g);
         for (var i = 0; i < tokens.length; i++)
             tokens[i] = tokens[i].trim();
 
@@ -283,6 +283,7 @@ var turtle_lang = function () {
     globals.sub = function (a) { return function (b) { return a - b; }; };
     globals.mul = function (a) { return function (b) { return a * b; }; };
     globals.div = function (a) { return function (b) { return a / b; }; };
+    globals["eq?"] = function (a) { return function (b) { return a === b; }; };
 
     globals.true = true;
     globals.false = false;
@@ -321,6 +322,8 @@ var turtle_lang = function () {
         ev("{a b c d => add b (add c d)} 1 2 3 4", 9);
         ev("{a b c d => add (add a b) (add c d)} 1 2 3 4", 10);
         ev("sumfour = {a b c d => add (add a b) (add c d)}, sumfour 1 2 3 4", 10);
+        ev("eq? 1 2", false);
+        ev("eq? (add 2 2) 4", true);
 
         // Church numeral tests
         ev("zero = {f x => x}, chtoint = {ch => ch {x => add x 1} 0}, chtoint zero", 0);
