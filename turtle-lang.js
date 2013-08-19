@@ -288,13 +288,17 @@ var turtle_lang = function () {
     globals.true = true;
     globals.false = false;
     globals['boolean?'] = function (x) { return typeof x === "boolean"; };
-    globals.not = function (b) { return a === false || a === null; };
+    globals.not = function (b) { return b === false || b === null; };
     function _first(x)  { return function (_) { return x; }; }
     function _second(_) { return function (x) { return x; }; }
     globals.select = function (a) {
         return (a === false || a === null) ? _second : _first;
     };
     globals.if = turtle_eval("{a b c => (select a b c)!}");
+
+    globals.while = turtle_eval("{p c => if (p!) {c!, while p c} {!}}");
+    globals.rep = turtle_eval("{n f => if (eq? 0 n) {!} {f!, rep (sub n 1) f}}");
+    globals.forever = turtle_eval("{f => f!, forever f}");
 
     // Pairs and lists
     globals["nil?"] = function (a) { return a === null; };
@@ -319,8 +323,8 @@ var turtle_lang = function () {
     // === Tests
 
     function test() {
-        function ev(code, val) {
-            var t = new Thread(code, globals);
+        function ev(code, val, env) {
+            var t = new Thread(code, env || globals);
             while (t.alive)
                 t.step();
             assert(t.result === val);
@@ -369,6 +373,36 @@ var turtle_lang = function () {
         ev("range = {start stop => if (eq? start stop) {!} {pair start (range (add 1 start) stop)}},\n" +
            "sum = foldl add 0,\n" +
            "sum (range 0 101)", 5050);
+
+        // Tests involving side effects
+        var locals = Object.create(globals);
+        locals.box = function (v) { return {type: "box", value: v}; };
+        locals.get = function (box) { return box.value; };
+        locals.put = function (box) { return function (v) { box.value = v; return null; }; };
+        ev("a = box!, put a 3, get a", 3, locals);
+        ev("a = box 0, while {not (eq? (get a) 5) } {put a (add (get a) 1)}, get a", 5, locals);
+        ev("a = box 1, rep 6 {put a (mul (get a) 2) }, get a", 64, locals);
+
+        // We cannot run forever, but try it for a while at least.
+        locals.a = locals.box(0);
+        var t = new Thread("forever {put a (add (get a) 1)}", locals);
+        while (t.alive && locals.a.value === 0)
+            t.step();
+        assert(t.alive);
+        assert(locals.a.value === 1);
+        var dt = 0;
+        while (t.alive && locals.a.value === 1) {
+            t.step();
+            dt++;
+        }
+        assert(t.alive);
+        assert(locals.a.value === 2);
+        console.log("one cycle through this loop takes " + dt + " steps");
+        var N = 100;
+        for (var i = 0; i < N*dt; i++)
+            t.step();
+        assert(t.alive);
+        assert(locals.a.value === 2 + N);
 
         console.log("all tests passed");
     }
