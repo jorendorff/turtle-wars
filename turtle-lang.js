@@ -257,7 +257,7 @@ var turtle_lang = function () {
         _done: function (v) {
             this.alive = false;
             this.result = v;
-            console.log("thread finished! value was: ", v);
+            //console.log("thread finished! value was: ", v);
             return {type: "nothing to do"};
         }
     };
@@ -330,6 +330,7 @@ var turtle_lang = function () {
             var t = new Thread(code, env || globals);
             while (t.alive)
                 t.step();
+            console.log("'" + code + "' ===> " + t.result);
             assert(t.result === val);
         }
 
@@ -349,13 +350,13 @@ var turtle_lang = function () {
         ev("add 3 4", 7);
         ev("x=1", 1);
         ev("1,2", 2);
+
         err(",");
         err("1,");
         err("1,,2");
         err("{1,}");
         err("{1, }");
         err("x = ");
-        err("forever {\n fd 10,\n rt 10,\n}");
         ev("x = add 2 2, mul x 7", 28);
         ev("!", null);
         ev("{ 2 } !", 2);
