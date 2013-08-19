@@ -268,11 +268,30 @@ var turtle_lang = function () {
     // === Base environment
 
     var globals = Object.create(null);
+
+    function turtle_eval(code, env) {
+        if (env === undefined)
+            env = globals;
+        var t = new Thread(code, env);
+        while (t.alive)
+            t.step();
+        return t.result;
+    }
+
     globals.add = function (a) { return function (b) { return a + b; }; };
     globals.neg = function (a) { return -a; };
     globals.sub = function (a) { return function (b) { return a - b; }; };
     globals.mul = function (a) { return function (b) { return a * b; }; };
     globals.div = function (a) { return function (b) { return a / b; }; };
+
+    globals.true = true;
+    globals.false = false;
+    globals['boolean?'] = function (x) { return typeof x === "boolean"; };
+    globals.not = function (b) { return a === false || a === null; };
+    globals.select = function (a) { return function (b) { return function (c) {
+        return a === false || a === null ? c : b;
+    }; }; };
+    globals.if = turtle_eval("{a b c => (select a b c)!}");
 
 
     // === Tests
@@ -309,13 +328,18 @@ var turtle_lang = function () {
         ev("zero = {f x => x}, inc = {k f x => k f (f x)}, one = inc zero,\n" +
            "chtoint = {ch => ch {x => add x 1} 0}, chtoint (inc (inc one))", 3);
 
+        // Booleans and if
+        ev("if 1 {2} {3}", 2);
+        ev("if false {4} {5}", 5);
+
         console.log("all tests passed");
     }
     test();
 
     return {
         Thread: Thread,
-        globals: globals
+        globals: globals,
+        Function: Function
     };
 
 }();
