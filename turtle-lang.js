@@ -40,12 +40,12 @@ var turtle_lang = function () {
 
         /*
           prim:
-          number
-          name
-          !
-          ( expr )
-          { expr }
-          { args => expr }
+            number
+            name
+            !
+            ( expr )
+            { expr }
+            { args => expr }
         */
         function parsePrim() {
             var t = peek();
@@ -107,8 +107,8 @@ var turtle_lang = function () {
 
         /*
           call:
-          prim
-          call prim
+            prim
+            call prim
         */
         function parseCall() {
             var expr = parsePrim();
@@ -123,12 +123,12 @@ var turtle_lang = function () {
 
         /*
           element:
-          call
-          name = call
+            call
+            name = call
         */
         function parseElement() {
             var t = peek();
-            if (isName(t) && lookAhead(1) == "=") {
+            if (isName(t) && lookAhead(1) === "=") {
                 consume(t);
                 consume("=");
                 return out.assign(t, parseCall());
@@ -137,25 +137,33 @@ var turtle_lang = function () {
         }
 
         /*
+          An expr is a sequence of 1 or more elements, separated by commas.
+          But the last one may not be an assignment.
+
           expr:
-          element
-          expr , element
+            call
+            seq , call
+
+          seq:
+            element
+            seq , element
         */
         function parseExpr() {
             var e = parseElement();
-            if (peek() !== ",")
-                return e;
-
             var a = [e];
-            while (peek() == ",") {
+            while (peek() === ",") {
                 consume(",");
-                a.push(parseElement());
+                e = parseElement()
+                a.push(e);
             }
-            if (a[a.length - 1].type == "let") {
+            if (a[a.length - 1].type === "assign") {
                 throw new Error("syntax error: the last thing in this sequence " +
                                 "is an assignment, which doesn't make sense to me");
             }
-            return out.seq(a);
+            if (a.length === 1)
+                return e;
+            else
+                return out.seq(a);
         }
 
         var result = parseExpr();
@@ -348,7 +356,9 @@ var turtle_lang = function () {
         err("");
         ev("3", 3);
         ev("add 3 4", 7);
-        ev("x=1", 1);
+        err("x=1");
+        ev("x=1, x", 1);
+        err("x=1,y=2");
         ev("1,2", 2);
 
         err(",");
