@@ -94,6 +94,9 @@ var turtle_lang = function () {
                 while (args.length !== 0)
                     result = out.func(args.pop(), result);
                 return result;
+            } else {
+                throw new Error("syntax error: unexpected " +
+                                (pos === tokens.length ? "end of code" : "'" + t + "'"));
             }
         }
 
@@ -330,10 +333,29 @@ var turtle_lang = function () {
             assert(t.result === val);
         }
 
+        function err(code) {
+            try {
+                parse(code, builder);
+            } catch (exc) {
+                if (!(exc instanceof Error))
+                    throw new Error("expected Error, got other kind of exception: " + exc);
+                return;
+            }
+            throw new Error("expected Error parsing '" + code + "', but no exception was thrown");
+        }
+
+        err("");
         ev("3", 3);
         ev("add 3 4", 7);
         ev("x=1", 1);
         ev("1,2", 2);
+        err(",");
+        err("1,");
+        err("1,,2");
+        err("{1,}");
+        err("{1, }");
+        err("x = ");
+        err("forever {\n fd 10,\n rt 10,\n}");
         ev("x = add 2 2, mul x 7", 28);
         ev("!", null);
         ev("{ 2 } !", 2);
