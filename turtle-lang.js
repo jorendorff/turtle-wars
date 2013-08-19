@@ -198,16 +198,6 @@ var turtle_lang = function () {
     function evaluate(n, env, ctn) {
         assert(typeof env == "object");
 
-        /*
-        var orig = ctn;
-        ctn = function (v) {
-            var r = orig(v); 
-            if (r === undefined || r === null)
-                console.log("FAIL FAIL FAIL:" + orig);
-            return r;
-        };
-*/
-
         switch (n.type) {
         case 'number':
             return ctn(n.value);
