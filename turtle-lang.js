@@ -157,7 +157,9 @@ var turtle_lang = function () {
 
     // === Interpreter
 
-    function lambda(arg, body) { return {type: "lambda", arg: arg, body: body}; }
+    function lambda(arg, body, env) {
+        return {type: "lambda", arg: arg, body: body, env: env};
+    }
 
     function evaluate_later(ast, env, ctn) {
         return {type: "suspended thread state", ast: ast, env: env, ctn: ctn};
@@ -209,19 +211,19 @@ var turtle_lang = function () {
 
         case 'function':
             if (n.args.length === 0)
-                return ctn(lambda("_", n.body));
+                return ctn(lambda("_", n.body, env));
             else if (n.args.length === 1)
-                return ctn(lambda(n.args[0], n.body));
+                return ctn(lambda(n.args[0], n.body, env));
             else
-                return ctn(lambda(n.args[0], {type: 'function', args: n.args.slice(1), body: n.body}));
+                return ctn(lambda(n.args[0], {type: 'function', args: n.args.slice(1), body: n.body}, env));
 
         case 'call':
             return evaluate(n.fn, env, function (f) {
                 return evaluate(n.args, env, function (a) {
                     if (typeof f === "function") {
                         return ctn(f(a));
-                    } else if (f.type === "lambda") {
-                        var scope = Object.create(env);
+                    } else if (typeof f === "object" && f !== null && f.type === "lambda") {
+                        var scope = Object.create(f.env);
                         scope[f.arg] = a;
                         return evaluate_later(f.body, scope, ctn);
                     } else {
@@ -264,10 +266,11 @@ var turtle_lang = function () {
     // === Base environment
 
     var globals = Object.create(null);
-    globals.add = function (a) { return function (b) { return a + b; } };
+    globals.add = function (a) { return function (b) { return a + b; }; };
     globals.neg = function (a) { return -a; };
-    globals.mul = function (a) { return function (b) { return a * b; } };
-    globals.div = function (a) { return function (b) { return a / b; } };
+    globals.sub = function (a) { return function (b) { return a - b; }; };
+    globals.mul = function (a) { return function (b) { return a * b; }; };
+    globals.div = function (a) { return function (b) { return a / b; }; };
 
 
     // === Tests
@@ -287,6 +290,23 @@ var turtle_lang = function () {
         ev("x = add 2 2, mul x 7", 28);
         ev("!", null);
         ev("{ 2 } !", 2);
+        ev("{x => add x 1} 3", 4);
+        ev("inc = {x => add x 1}, inc 15", 16);
+        ev("{a b => sub b a} 13 31", 18);
+        ev("{a b c => 0} 0 0 0", 0);
+        ev("{a b c => c} 1 2 3", 3);
+        ev("{a b c d => d} 1 2 3 4", 4);
+        ev("{a b c d => add c d} 1 2 3 4", 7);
+        ev("{a b c d => add b (add c d)} 1 2 3 4", 9);
+        ev("{a b c d => add (add a b) (add c d)} 1 2 3 4", 10);
+        ev("sumfour = {a b c d => add (add a b) (add c d)}, sumfour 1 2 3 4", 10);
+
+        // Church numeral tests
+        ev("zero = {f x => x}, chtoint = {ch => ch {x => add x 1} 0}, chtoint zero", 0);
+        ev("one = {f x => f x}, chtoint = {ch => ch {x => add x 1} 0}, chtoint one", 1);
+        ev("zero = {f x => x}, inc = {k f x => k f (f x)}, one = inc zero,\n" +
+           "chtoint = {ch => ch {x => add x 1} 0}, chtoint (inc (inc one))", 3);
+
         console.log("all tests passed");
     }
     test();
