@@ -151,12 +151,24 @@ var turtle_lang = function () {
         function parseExpr() {
             var e = parseElement();
             var a = [e];
+            var names = Object.create(null);
+            var isAssign = e.type === "assign";
+            if (isAssign)
+                names[e.name] = true;
             while (peek() === ",") {
                 consume(",");
                 e = parseElement()
+
+                isAssign = e.type === "assign";
+                if (isAssign) {
+                    if (e.name in names)
+                        throw new Error("syntax error: assigning to the same variable more than once");
+                    names[e.name] = true;
+                }
+
                 a.push(e);
             }
-            if (a[a.length - 1].type === "assign") {
+            if (isAssign) {
                 throw new Error("syntax error: the last thing in this sequence " +
                                 "is an assignment, which doesn't make sense to me");
             }
@@ -359,6 +371,10 @@ var turtle_lang = function () {
         err("x=1");
         ev("x=1, x", 1);
         err("x=1,y=2");
+        err("x = 1, x = 2, x");
+        ev("x = 1, (x = 2, x)", 2);
+        ev("x = 1, (x = 2, x), x", 1);
+        err("x = 1, y = 2, y = 3, x");
         ev("1,2", 2);
 
         err(",");
