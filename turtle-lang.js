@@ -8,42 +8,48 @@ var turtle_lang = function () {
     }
 
     var builder = {
-        number:  function (p, t)          { return {pos: p, type: 'number', value: parseInt(t)}; },
-        name:    function (p, t)          { return {pos: p, type: 'name', name: t}; },
-        nil:     function (p)             { return {pos: p, type: 'null'}; },
-        seq:     function (p, a)          { return {pos: p, type: 'seq', elements: a}; },
-        assign:  function (p, name, expr) { return {pos: p, type: 'assign', name: name, expr: expr}; },
-        func:    function (p, arg, body)  { return {pos: p, type: 'function', arg: arg, body: body}; },
-        call:    function (p, fn, arg)    { return {pos: p, type: 'call', fn: fn, arg: arg}; }
+        number:  function (loc, t)          { return {loc: loc, type: 'number', value: parseInt(t)}; },
+        name:    function (loc, t)          { return {loc: loc, type: 'name', name: t}; },
+        nil:     function (loc)             { return {loc: loc, type: 'nil'}; },
+        seq:     function (loc, a)          { return {loc: loc, type: 'seq', elements: a}; },
+        assign:  function (loc, name, expr) { return {loc: loc, type: 'assign', name: name, expr: expr}; },
+        func:    function (loc, arg, body)  { return {loc: loc, type: 'function', arg: arg, body: body}; },
+        call:    function (loc, fn, arg)    { return {loc: loc, type: 'call', fn: fn, arg: arg}; }
     };
 
     function parse(code, out) {
-        var tokens = code.match(/\s*([A-Za-z][A-Za-z0-9?-]+|[0-9]+|=>|\S)/g);
-        for (var i = 0; i < tokens.length; i++)
-            tokens[i] = tokens[i].trim();
+        // tokenize code
+        var tokens = [];
+        var tokenRegExp = /([A-Za-z][A-Za-z0-9?-]+|[0-9]+|=>|\S)\s*/g;
+        tokenRegExp.lastIndex = /\s*/.exec(code)[0].length;
+        var m;
+        while ((m = tokenRegExp.exec(code)) !== null)
+            tokens.push(m);
 
-        var pos = 0;
+        var pos = 0;  // index of the first not-yet-consumed token in `tokens`
 
         function peek() {
-            return tokens[pos];
+            return pos >= tokens.length ? undefined : tokens[pos][1];
         }
 
         function lookAhead(n) {
-            return tokens[pos + n];
+            return pos + n >= tokens.length ? undefined : tokens[pos + n][1];
         }
 
         function consume(t) {
-            if (t !== peek())
-                throw new Error("internal error: consume mismatch");
+            if (t !== peek()) {
+                throw new Error("internal error: consume mismatch (expected '"
+                                + t + "', got '" + peek() + "' at offset " + startOfNext() + ")");
+            }
             pos++;
         }
 
         function startOfNext() {
-            return 0;
+            return pos >= tokens.length ? -1 : tokens[pos].index;
         }
 
         function endOfPrev() {
-            return 0;
+            return pos === 0 ? -1 : tokens[pos - 1].index + tokens[pos - 1][1].length;
         }
 
         /*
@@ -199,6 +205,45 @@ var turtle_lang = function () {
         return result;
     }
 
+    function assertMatch(actual, expected) {
+        var sa = JSON.stringify(actual);
+        var se = JSON.stringify(expected);
+        if (sa !== se)
+            throw new Error("assertion failed: got " + sa + ", expected " + se);
+    }
+
+    function testParser() {
+        // These are mostly testing position information.
+        assertMatch(parse(" !", builder), {loc: [1, 2], type: "nil"});
+        assertMatch(parse("  (2)", builder), {loc: [3, 4], type: "number", value: 2});
+        assertMatch(parse("f(2)", builder), {
+            loc: [0, 4], type: "call",
+            fn: {loc: [0, 1], type: "name", name: "f"},
+            arg: {loc: [2, 3], type: "number", value: 2}
+        });
+        assertMatch(parse("add 13 1\n", builder), {
+            loc: [0, 8], type: "call",
+            fn: {
+                loc: [0, 6], type: "call",
+                fn: {loc: [0, 3], type: "name", name: "add"},
+                arg: {loc: [4, 6], type: "number", value: 13},
+            },
+            arg: {loc: [7, 8], type: "number", value: 1}
+        });
+        assertMatch(parse("x ! , f", builder), {
+            loc: [0, 7], type: "seq",
+            elements: [
+                {
+                    loc: [0, 3], type: "call",
+                    fn: {loc: [0, 1], type: "name", name: "x"},
+                    arg: {loc: [2, 3], type: "nil"}
+                },
+                {loc: [6, 7], type: "name", name: "f"}
+            ]
+        });
+    }
+    testParser();
+
 
     // === Interpreter
 
@@ -220,7 +265,7 @@ var turtle_lang = function () {
         case 'name':
             return ctn(n.name in env ? env[n.name] : null);
 
-        case 'null':
+        case 'nil':
             return ctn(null);
 
         case 'seq':
@@ -282,7 +327,6 @@ var turtle_lang = function () {
         _done: function (v) {
             this.alive = false;
             this.result = v;
-            //console.log("thread finished! value was: ", v);
             return {type: "nothing to do"};
         }
     };
@@ -355,7 +399,7 @@ var turtle_lang = function () {
             var t = new Thread(code, env || globals);
             while (t.alive)
                 t.step();
-            console.log("'" + code + "' ===> " + t.result);
+            //console.log("'" + code + "' ===> " + t.result);
             assert(t.result === val);
         }
 
@@ -421,7 +465,7 @@ var turtle_lang = function () {
         ev("nil? !", true);
         ev("length !", 0);
         ev("length (pair 1 (pair 2 (pair 3 !)))", 3);
-        ev("map {0!} nil", null);
+        ev("map {0!} !", null);
         ev("filter {whatever => false} (pair 1 (pair 2 !))", null);
         ev("foldl add 0 (map (add 1) (pair 1 (pair 2 (pair 3 !))))", 9);
         ev("range = {start stop => if (eq? start stop) {!} {pair start (range (add 1 start) stop)}},\n" +
