@@ -13,8 +13,8 @@ var turtle_lang = function () {
         nil:     function() {           return {type: 'null'}; },
         seq:     function(a) {          return {type: 'seq', elements: a}; },
         assign:  function(name, expr) { return {type: 'assign', name: name, expr: expr}; },
-        func:    function(args, body) { return {type: 'function', args: args, body: body}; },
-        call:    function(fn, args)   { return {type: 'call', fn: fn, args: args}; }
+        func:    function(arg, body)  { return {type: 'function', arg: arg, body: body}; },
+        call:    function(fn, arg)    { return {type: 'call', fn: fn, arg: arg}; }
     };
 
     function parse(code, out) {
@@ -86,7 +86,14 @@ var turtle_lang = function () {
                 if (peek() != "}")
                     throw new Error("expected '}'");
                 consume('}');
-                return out.func(args, body);
+
+                if (args.length === 0)
+                    args.push("_");
+
+                var result = body;
+                while (args.length !== 0)
+                    result = out.func(args.pop(), result);
+                return result;
             }
         }
 
@@ -210,16 +217,11 @@ var turtle_lang = function () {
             });
 
         case 'function':
-            if (n.args.length === 0)
-                return ctn(lambda("_", n.body, env));
-            else if (n.args.length === 1)
-                return ctn(lambda(n.args[0], n.body, env));
-            else
-                return ctn(lambda(n.args[0], {type: 'function', args: n.args.slice(1), body: n.body}, env));
+            return ctn(lambda(n.arg, n.body, env));
 
         case 'call':
             return evaluate(n.fn, env, function (f) {
-                return evaluate(n.args, env, function (a) {
+                return evaluate(n.arg, env, function (a) {
                     if (typeof f === "function") {
                         return ctn(f(a));
                     } else if (typeof f === "object" && f !== null && f.type === "lambda") {
