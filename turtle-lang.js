@@ -294,6 +294,25 @@ var turtle_lang = function () {
     }; }; };
     globals.if = turtle_eval("{a b c => (select a b c)!}");
 
+    // Pairs and lists
+    globals["nil?"] = function (a) { return a === null; };
+    globals["pair?"] = function (a) {
+        return typeof a === "object" && a !== null && a.type === "pair";
+    };
+    globals.pair = function (a) { return function (b) {
+        return {type: "pair", head: a, tail: b};
+    }; };
+    globals.head = function (p) { return p.head; };
+    globals.tail = function (p) { return p.tail; };
+    globals.length = turtle_eval("{l => if (nil? l) {0} {add 1 (length (tail l))}}");
+    globals.map = turtle_eval("{f l => if (nil? l) {l} {pair (f (head l)) (map f (tail l))}}");
+    globals.filter = turtle_eval("{p l =>\n" +
+                                 "  if (nil? l) {l} {\n" +
+                                 "    pass = p (head l), rest = filter p (tail l),\n" +
+                                 "    if pass {pair pass rest} {rest}}}");
+    globals.foldl = turtle_eval("{f a l =>\n" +
+                                "  if (nil? l) {a} {\n" +
+                                "    foldl f (f a (head l)) (tail l)}}");
 
     // === Tests
 
@@ -334,6 +353,20 @@ var turtle_lang = function () {
         // Booleans and if
         ev("if 1 {2} {3}", 2);
         ev("if false {4} {5}", 5);
+        ev("erode = {a => if (eq? a 0) {a} {erode (sub a 1)}}, erode 57", 0);
+
+        // Pairs and lists
+        ev("head (pair 1 2)", 1);
+        ev("pair? !", false);
+        ev("nil? !", true);
+        ev("length !", 0);
+        ev("length (pair 1 (pair 2 (pair 3 !)))", 3);
+        ev("map {0!} nil", null);
+        ev("filter {whatever => false} (pair 1 (pair 2 !))", null);
+        ev("foldl add 0 (map (add 1) (pair 1 (pair 2 (pair 3 !))))", 9);
+        ev("range = {start stop => if (eq? start stop) {!} {pair start (range (add 1 start) stop)}},\n" +
+           "sum = foldl add 0,\n" +
+           "sum (range 0 101)", 5050);
 
         console.log("all tests passed");
     }
