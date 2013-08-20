@@ -309,6 +309,15 @@ var turtle_lang = function () {
         return {type: "suspended thread state", ast: ast, env: env, ctn: ctn};
     }
 
+    function runtimeError(msg, loc) {
+        var exc = new Error(msg);
+        exc.loc = loc;
+        throw exc;
+    }
+
+    // ctn is a JS function: the continuation of n.
+    // If debugging UI requires something more inspectable than a JS function
+    // it could be changed to some kind of data structure pretty easily.
     function evaluate(n, env, ctn) {
         assert(typeof env == "object");
 
@@ -317,7 +326,9 @@ var turtle_lang = function () {
             return ctn(n.value);
 
         case 'name':
-            return ctn(n.name in env ? env[n.name] : null);
+            if (!(n.name in env))
+                runtimeError("there's no variable '" + n.name + "' in scope here", n.loc);
+            return ctn(env[n.name]);
 
         case 'nil':
             return ctn(null);
@@ -356,7 +367,7 @@ var turtle_lang = function () {
                         scope[f.arg] = a;
                         return evaluate_later(f.body, scope, ctn);
                     } else {
-                        throw new Error("type error: tried to call " + f + "() but it is not a function");
+                        runtimeError("type error: tried to call " + f + "() but it is not a function", n.loc);
                     }
                 });
             });
@@ -374,8 +385,21 @@ var turtle_lang = function () {
     Thread.prototype = {
         step: function () {
             var s = this.state;
-            this.state = evaluate(s.ast, s.env, s.ctn);
+            try {
+                this.state = evaluate(s.ast, s.env, s.ctn);
+            } catch (exc) {
+                this.alive = false;
+                this.result = null;
+                this.state = {type: "uncaught exception", message: "" + exc};
+                throw exc;
+            }
             assert(this.state != null);
+        },
+
+        run: function () {
+            while (this.alive)
+                this.step();
+            return this.result;
         },
 
         _done: function (v) {
@@ -452,6 +476,20 @@ var turtle_lang = function () {
 
     // === Tests
 
+    function assertThrows(fn, pred) {
+        try {
+            fn();
+        } catch (exc) {
+            if (!pred(exc)) {
+                throw new Error("assertion failed: expected an exception " +
+                                "that would pass " + pred.name + ", got " + exc);
+            }
+            return;
+        }
+        throw new Error("assertion failed: expected an exception " +
+                        "that would pass " + pred.name + ", no exception thrown");
+    }
+
     function test() {
         function ev(code, val, env) {
             var t = new Thread(code, env || globals);
@@ -462,19 +500,27 @@ var turtle_lang = function () {
         }
 
         function err(code) {
-            try {
-                parse(code, builder);
-            } catch (exc) {
-                if (!(exc instanceof Error))
-                    throw new Error("expected Error, got other kind of exception: " + exc);
-                return;
-            }
-            throw new Error("expected Error parsing '" + code + "', but no exception was thrown");
+            assertThrows(function () { parse(code, builder); },
+                         function isError(exc) { return exc instanceof Error; });
+        }
+
+        function rterr(code, env, loc) {
+            var t = new Thread(code, env || globals);
+            assertThrows(function () { t.run(); },
+                         function isRuntimeErrorAtLocation(exc) {
+                             return exc instanceof Error
+                                    && exc.loc
+                                    && (!loc
+                                        || (exc.loc[0] == loc[0] && exc.loc[1] == loc[1]));
+                         });
         }
 
         err("");
         ev("3", 3);
+        rterr("undefined", null, [0, 9]);
+        ev("add", globals.add);
         ev("add 3 4", 7);
+        rterr("1 2", null, [0, 3]);
         err("x=1");
         ev("x=1, x", 1);
         err("x=1,y=2");
