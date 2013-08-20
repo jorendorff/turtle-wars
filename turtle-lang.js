@@ -52,6 +52,20 @@ var turtle_lang = function () {
             return pos === 0 ? -1 : tokens[pos - 1].index + tokens[pos - 1][1].length;
         }
 
+        function syntaxError(msg, loc) {
+            if (loc === undefined) {
+                var start = startOfNext();
+                if (start !== -1)
+                    loc = [start, start + peek().length];
+                else
+                    loc = [code.length, code.length];
+            }
+
+            var exc = new Error(msg);
+            exc.loc = loc;
+            throw exc;
+        }
+
         /*
           prim:
             number
@@ -77,7 +91,7 @@ var turtle_lang = function () {
                 consume("(");
                 var e = parseExpr();
                 if (peek() != ")")
-                    throw new Error("either a bogus token or a missing ')'");
+                    syntaxError("expected ')'");
                 consume(")");
                 return e;
             } else if (t == "{") {
@@ -99,7 +113,7 @@ var turtle_lang = function () {
                 }
                 var body = parseExpr();
                 if (peek() != "}")
-                    throw new Error("expected '}'");
+                    syntaxError("expected '}'");
                 consume('}');
                 var p = [p0, endOfPrev()];
 
@@ -111,8 +125,8 @@ var turtle_lang = function () {
                     result = out.func(p, args.pop(), result);
                 return result;
             } else {
-                throw new Error("syntax error: unexpected " +
-                                (pos === tokens.length ? "end of code" : "'" + t + "'"));
+                syntaxError("unexpected " +
+                            (pos === tokens.length ? "end of code" : "'" + t + "'"));
             }
         }
 
@@ -169,7 +183,7 @@ var turtle_lang = function () {
             seq , element
         */
         function parseExpr() {
-            var p0 = startOfNext();
+            var p0 = startOfNext(), pe = p0;
             var e = parseElement();
             var a = [e];
             var names = Object.create(null);
@@ -178,20 +192,23 @@ var turtle_lang = function () {
                 names[e.name] = true;
             while (peek() === ",") {
                 consume(",");
-                e = parseElement()
+                pe = startOfNext();
+                e = parseElement();
 
                 isAssign = e.type === "assign";
                 if (isAssign) {
                     if (e.name in names)
-                        throw new Error("syntax error: assigning to the same variable more than once");
+                        syntaxError("assigning to the same variable more than once",
+                                    [pe, endOfPrev()]);
                     names[e.name] = true;
                 }
 
                 a.push(e);
             }
             if (isAssign) {
-                throw new Error("syntax error: the last thing in this sequence " +
-                                "is an assignment, which doesn't make sense to me");
+                syntaxError("the last thing in this sequence " +
+                            "is an assignment, which doesn't make sense to me",
+                            [pe, endOfPrev()]);
             }
             if (a.length === 1)
                 return e;
@@ -201,7 +218,7 @@ var turtle_lang = function () {
 
         var result = parseExpr();
         if (pos !== tokens.length)
-            throw new Error("syntax error: didn't expect '" + peek() + "'");
+            syntaxError("didn't expect '" + peek() + "'");
         return result;
     }
 
@@ -214,14 +231,36 @@ var turtle_lang = function () {
 
     function testParser() {
         // These are mostly testing position information.
-        assertMatch(parse(" !", builder), {loc: [1, 2], type: "nil"});
-        assertMatch(parse("  (2)", builder), {loc: [3, 4], type: "number", value: 2});
-        assertMatch(parse("f(2)", builder), {
+
+        function p(code, expected) {
+            assertMatch(parse(code, builder), expected);
+        }
+
+        function err(code, loc) {
+            try {
+                parse(code, builder);
+            } catch (exc) {
+                if (!(exc instanceof Error) || !("loc" in exc))
+                    throw exc;
+                var actual = JSON.stringify(exc.loc);
+                var expected = JSON.stringify(loc);
+                if (actual !== expected) {
+                    throw new Error("got error at " + actual + ", " +
+                                    "expected error at " + expected + " (" + exc + ")");
+                }
+                return;
+            }
+            throw new Error("expected exception, none thrown");
+        }
+
+        p(" !", {loc: [1, 2], type: "nil"});
+        p("  (2)", {loc: [3, 4], type: "number", value: 2});
+        p("f(2)", {
             loc: [0, 4], type: "call",
             fn: {loc: [0, 1], type: "name", name: "f"},
             arg: {loc: [2, 3], type: "number", value: 2}
         });
-        assertMatch(parse("add 13 1\n", builder), {
+        p("add 13 1\n", {
             loc: [0, 8], type: "call",
             fn: {
                 loc: [0, 6], type: "call",
@@ -230,7 +269,7 @@ var turtle_lang = function () {
             },
             arg: {loc: [7, 8], type: "number", value: 1}
         });
-        assertMatch(parse("x ! , f", builder), {
+        p("x ! , f", {
             loc: [0, 7], type: "seq",
             elements: [
                 {
@@ -241,6 +280,11 @@ var turtle_lang = function () {
                 {loc: [6, 7], type: "name", name: "f"}
             ]
         });
+
+        err("a,,", [2, 3]);
+        err("z123456=8,z123456=8,0", [10, 19]);
+        err("a=1", [0, 3]);
+        err("a=2,b=6,c=11", [8, 12]);
     }
     testParser();
 
@@ -488,6 +532,9 @@ var turtle_lang = function () {
             t.step();
         assert(t.alive);
         assert(locals.a.value === 1);
+
+        // Measure the number of steps dt it takes to make one cycle through
+        // the loop.
         var dt = 0;
         while (t.alive && locals.a.value === 1) {
             t.step();
@@ -495,7 +542,8 @@ var turtle_lang = function () {
         }
         assert(t.alive);
         assert(locals.a.value === 2);
-        console.log("one cycle through this loop takes " + dt + " steps");
+
+        // Check that after 100 cycles, the value is as expected.
         var N = 100;
         for (var i = 0; i < N*dt; i++)
             t.step();
