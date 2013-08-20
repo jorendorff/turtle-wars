@@ -112,12 +112,11 @@ var turtle_game = (function () {
     };
 
 
-    // === Fights
+    // === Game
 
-    function Fight(turtles, canvas) {
-        // the state of a fight is: the position of the turtles, their internal
-        // program execution state, and the state of the bullets -- but let's
-        // ignore bullets for now
+    function Game(turtles, canvas) {
+        // the state of a game is: the position of the turtles, their internal
+        // program execution state, and the state of the bullets
         this.turtles = turtles;
         this.bullets = [];
         this.canvas = canvas;
@@ -126,7 +125,6 @@ var turtle_game = (function () {
         this.alive = true;
 
         var self = this;
-
         this.tick_callback = function () {
             if (self.alive) {
                 self.tick();
@@ -143,7 +141,7 @@ var turtle_game = (function () {
 
     var WALL_THICKNESS = 4;
 
-    Fight.prototype = {
+    Game.prototype = {
         start: function start() {
             var self = this;
             this.turtles.forEach(function(t) {
@@ -190,9 +188,9 @@ var turtle_game = (function () {
         },
 
         stop: function stop() {
-            alive = false;
+            this.alive = false;
         }
     };
 
-    return {Turtle: Turtle, Fight: Fight};
+    return {Turtle: Turtle, Game: Game};
 })();

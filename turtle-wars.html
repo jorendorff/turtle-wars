@@ -8,7 +8,12 @@
     <script src="turtle-game.js"></script>
     <script>
       $(function () {
+          var game = null;
           $("#fightbtn").click(function () {
+              if (game !== null) {
+                  game.stop();
+                  game = null;
+              }
               var canvas = $("canvas#field").get(0);
 
               var brown = new turtle_game.Turtle($('#turtle1 textarea').val(), 'rgb(128,32,0)');
@@ -21,8 +26,8 @@
               green.y = canvas.height - green.r * 2;
               green.h = Math.random() * 2 * Math.PI;
 
-              var fight = new turtle_game.Fight([brown, green], canvas);
-              fight.start();
+              game = new turtle_game.Game([brown, green], canvas);
+              game.start();
           });
       });
     </script>
