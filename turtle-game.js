@@ -22,20 +22,36 @@ var turtle_game = (function () {
         this.vy = BULLET_SPEED * Math.sin(direction);
         this.direction = direction;
         this.turtle = turtle;
+        this.color =
+            turtle.color === 'rgb(80,40,0)'
+            ? 'rgba(255, 160, 80, 0.4)'
+            : 'rgba(80, 255, 160, 0.4)';
     }
 
     Bullet.prototype = {
         paintTo: function paintTo(ctx) {
+            var color = this.color;
+            var x1 = this.x, y1 = this.y;
             var len_x = 5 * this.vx, len_y = 5 * this.vy;
+            var x0, y0;
             if (Math.abs(len_x) > Math.abs(this.x - this.x0)) {
                 len_x = this.x - this.x0;
                 len_y = this.y - this.y0;
             }
-            ctx.beginPath();
-            ctx.moveTo(this.x, this.y);
-            ctx.lineTo(this.x - len_x, this.y - len_y);
-            ctx.strokeStyle = '#000';
-            ctx.stroke();
+            x0 = x1 - len_x;
+            y0 = y1 - len_y;
+            ctx.lineCap = "round";
+            function draw(w) {
+                ctx.lineWidth = w;
+                ctx.beginPath();
+                ctx.moveTo(x0, y0);
+                ctx.lineTo(x1, y1);
+                ctx.strokeStyle = color;
+                ctx.stroke();
+            }
+            draw(4);
+            draw(3);
+            ctx.lineWidth = 1;
         },
 
         checkHit: function checkHit(turtles) {
@@ -163,7 +179,7 @@ var turtle_game = (function () {
             var ctx = this.canvas.getContext('2d');
             ctx.fillStyle = "rgb(0,0,0)";
             ctx.fillRect(0, 0, this.w, this.h);
-            ctx.fillStyle = "rgb(255,255,255)";
+            ctx.fillStyle = "rgb(23,84,7)";
             var W = WALL_THICKNESS;
             ctx.fillRect(W, W, this.w - (2*W), this.h - (2*W));
 
