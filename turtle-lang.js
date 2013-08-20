@@ -326,8 +326,13 @@ var turtle_lang = function () {
             return ctn(n.value);
 
         case 'name':
-            if (!(n.name in env))
-                runtimeError("there's no variable '" + n.name + "' in scope here", n.loc);
+            var result = env[n.name];
+            if (result === undefined) {
+                runtimeError(n.name in env
+                             ? "this local variable isn't initialized yet"
+                             : "no such variable in scope",
+                             n.loc);
+            }
             return ctn(env[n.name]);
 
         case 'nil':
@@ -335,9 +340,9 @@ var turtle_lang = function () {
 
         case 'seq':
             var scope = Object.create(env);
-            for (var i = 0; i < n.elements; i++)
+            for (var i = 0; i < n.elements.length; i++)
                 if (n.elements[i].type === 'assign')
-                    scope[n.elements[i].name] = null;
+                    scope[n.elements[i].name] = undefined;
 
             var i = 0;
             var go = function to_next(v) {
@@ -528,7 +533,9 @@ var turtle_lang = function () {
         ev("x = 1, (x = 2, x)", 2);
         ev("x = 1, (x = 2, x), x", 1);
         err("x = 1, y = 2, y = 3, x");
+        rterr("x=y, y=x, x", null, [2, 3]);
         ev("1,2", 2);
+        rterr("x=2, (y=x, x=13, y)", null, [8, 9]);
 
         err(",");
         err("1,");
