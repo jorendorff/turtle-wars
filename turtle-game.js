@@ -14,19 +14,26 @@ var turtle_game = (function () {
     var BULLET_SPEED = 10;
 
     function Bullet(x, y, direction, turtle) {
-        this.x = x;
+        this.x0 = x;  // origin
+        this.y0 = y;
+        this.x = x;   // current position
         this.y = y;
-        this.vx = 0;
-        this.vy = 0;
+        this.vx = BULLET_SPEED * Math.cos(direction);
+        this.vy = BULLET_SPEED * Math.sin(direction);
         this.direction = direction;
         this.turtle = turtle;
     }
 
     Bullet.prototype = {
         paintTo: function paintTo(ctx) {
+            var len_x = 5 * this.vx, len_y = 5 * this.vy;
+            if (Math.abs(len_x) > Math.abs(this.x - this.x0)) {
+                len_x = this.x - this.x0;
+                len_y = this.y - this.y0;
+            }
             ctx.beginPath();
             ctx.moveTo(this.x, this.y);
-            ctx.lineTo(this.x - 5 * this.vx, this.y - 5 * this.vy);
+            ctx.lineTo(this.x - len_x, this.y - len_y);
             ctx.strokeStyle = '#000';
             ctx.stroke();
         },
@@ -104,10 +111,7 @@ var turtle_game = (function () {
         },
 
         shoot: function shoot() {
-            var b = new Bullet(this.x, this.y, this.h, this);
-            b.vx = BULLET_SPEED * Math.cos(this.h);
-            b.vy = BULLET_SPEED * Math.sin(this.h);
-            return b;
+            return new Bullet(this.x, this.y, this.h, this);
         }
     };
 
