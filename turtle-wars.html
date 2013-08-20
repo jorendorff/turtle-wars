@@ -28,8 +28,12 @@
     </script>
   </head>
   <body>
+    <div id="arena">
+      <h1>turtle wars <button id="fightbtn">Fight!</button></h1>
+      <canvas id="field" width="800" height="600"></canvas>
+    </div>
     <div id="turtle1">
-      <textarea id="brown" rows="40"
+      <textarea id="brown" cols="100" rows="40"
 >forever {
     fd 10,
     rt 10,
@@ -38,7 +42,7 @@
       </textarea>
     </div>
     <div id="turtle2">
-      <textarea id="green" rows="40"
+      <textarea id="green" cols="100" rows="40"
 >forever {
     shoot!,
     rep 20 {
@@ -48,10 +52,6 @@
     rt 157
 }
 </textarea>
-    </div>
-    <div id="arena">
-      <h1>turtle wars <button id="fightbtn">Fight!</button></h1>
-      <canvas id="field" width="800" height="600"></canvas>
     </div>
   </body>
 </html>
