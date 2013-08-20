@@ -290,6 +290,16 @@ var turtle_lang = function () {
 
 
     // === Interpreter
+    //
+    // Of course we could compile this stuff to JavaScript, but the key feature
+    // we're looking for in running turtle-lang code is the ability to step
+    // deterministically.
+    //
+    // Lacking ES6 generators, supporting that would be a nonlocal
+    // transformation to CPS and the output code would be a mess.
+    //
+    // Making an interpreter step-friendly, though, is quite easy. So we've got
+    // an interpreter.
 
     function lambda(arg, body, env) {
         return {type: "lambda", arg: arg, body: body, env: env};
