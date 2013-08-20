@@ -400,6 +400,10 @@ var turtle_lang = function () {
     globals.mul = function (a) { return function (b) { return a * b; }; };
     globals.div = function (a) { return function (b) { return a / b; }; };
     globals["eq?"] = function (a) { return function (b) { return a === b; }; };
+    globals["gt?"] = function (a) { return function (b) { return a > b; }; };
+    globals["ge?"] = function (a) { return function (b) { return a >= b; }; };
+    globals["lt?"] = function (a) { return function (b) { return a < b; }; };
+    globals["le?"] = function (a) { return function (b) { return a <= b; }; };
 
     globals.true = true;
     globals.false = false;
