@@ -39,12 +39,15 @@ var turtle_game = (function () {
         },
 
         checkHit: function checkHit(turtles) {
-            for(var ii in turtles) {
-                if (this.turtle == turtles[ii]) continue;
+            for (var ii in turtles) {
                 var turtle = turtles[ii];
-
-                return (this.x > turtle.x - turtle.r && this.x < turtle.x + turtle.r && this.y > turtle.y - turtle.r && this.y < turtle.y + turtle.r);
+                if (turtle !== this.turtle
+                    && Math.pow(turtle.x - this.x, 2) + Math.pow(turtle.y - this.y, 2)
+                       < Math.pow(turtle.r, 2)) {
+                    return turtle;
+                }
             }
+            return null;
         },
 
         nextPosition: function nextPosition(ctx) {
@@ -185,8 +188,8 @@ var turtle_game = (function () {
                 b.nextPosition();
                 if (b.isOutOfBounds(self.canvas) || b.checkHit(self.turtles)) {
                     var index = self.bullets.indexOf(b);
-                    if (index == -1) return;
-                    self.bullets.splice(index, 1);
+                    if (index !== -1)
+                        self.bullets.splice(index, 1);
                 }
             });
         },
