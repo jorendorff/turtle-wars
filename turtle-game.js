@@ -146,16 +146,18 @@ var turtle_game = (function () {
         this.w = canvas.width;
         this.h = canvas.height;
         this.alive = true;
+        this.lastUpdate = Date.now();
 
         var self = this;
         this.tick_callback = function () {
             if (self.alive) {
-                self.tick();
+                self.update();
                 setTimeout(self.tick_callback, 4);
             }
         };
         this.paint_callback = function () {
             if (self.alive) {
+                self.update();
                 self.paint();
                 requestAnimFrame(self.paint_callback);
             }
@@ -192,9 +194,13 @@ var turtle_game = (function () {
             });
         },
 
-        tick: function tick() {
+        update: function update() {
+            var now = Date.now();
+            var dt = now - this.lastUpdate;
+            this.lastUpdate = now;
+
             var self = this;
-            for (var i = 0; i < 6; i++) {
+            for (var i = 0; i < dt; i++) {
                 this.turtles.forEach(function (t) {
                     if (t.thread.alive)
                         t.thread.step();
