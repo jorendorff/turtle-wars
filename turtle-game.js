@@ -24,7 +24,7 @@ var turtle_game = (function () {
         this.turtle = turtle;
         this.color =
             turtle.color === 'rgb(80,40,0)'
-            ? 'rgba(255, 160, 80, 0.4)'
+            ? 'rgba(255, 160, 20, 0.6)'
             : 'rgba(80, 255, 160, 0.4)';
     }
 
