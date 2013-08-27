@@ -220,10 +220,10 @@ var turtle_game = (function () {
         g.fd = turtle_lang.eval("{n => rep n {fd1!}}", g);
 
         g.look = function (dir) {
-            if (typeof dir != 'number')
+            if (typeof dir != 'number' || isNaN(dir))
                 throw new TypeError("first argument to look must be a number");
-            else if (dir === 1/0 || dir === -1/0 || isNaN(dir))
-                throw new TypeError("first argument to look can't be " + dir);
+            else if (dir === 1/0 || dir === -1/0)
+                throw new RangeError("first argument to look can't be " + dir);
             return function (width) {
                 if (typeof width != 'number' || isNaN(width))
                     throw new TypeError("second argument to look must be a number");
@@ -232,12 +232,12 @@ var turtle_game = (function () {
                 else if (width < 1)
                     width = 1;
 
-                dir = self.h + dir * (Math.PI / 180);
+                var absdir = self.h + dir * (Math.PI / 180);
                 width *= Math.PI / 180;
 
                 var closestType = null, minDistance = 1/0;
                 self.game.turtles.forEach(function (t) {
-                    if (t !== self && pointIsInWedge(self, dir, width, t)) {
+                    if (t !== self && pointIsInWedge(self, absdir, width, t)) {
                         var dist = Math.sqrt(dist2(self, t));
                         if (dist < minDistance) {
                             minDistance = dist;
@@ -246,7 +246,7 @@ var turtle_game = (function () {
                     }
                 });
                 self.game.walls.forEach(function (w) {
-                    var dist = distToSegmentInWedge(self, dir, width, w);
+                    var dist = distToSegmentInWedge(self, absdir, width, w);
                     if (dist !== null && dist < minDistance) {
                         minDistance = dist;
                         closestType = LookWall;
