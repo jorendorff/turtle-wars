@@ -41,7 +41,8 @@
       <textarea id="brown" cols="100" rows="40"
 >forever {
     fd 10,
-    rt 10,
+    rt 2,
+    if (lt? (tail (look 0 90)) 20) {rt 20} {!},
     shoot!
 }
       </textarea>
@@ -49,12 +50,10 @@
     <div id="turtle2">
       <textarea id="green" cols="100" rows="40"
 >forever {
+    while { eq? (head (look 0 5)) 1 } {rt 3},
+    rt 2,
     shoot!,
-    rep 20 {
-       fd 25,
-       shoot!
-    },
-    rt 157
+    fd 25
 }
 </textarea>
     </div>
