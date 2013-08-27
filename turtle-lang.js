@@ -456,7 +456,7 @@ var turtle_lang = function () {
     globals.if = turtle_eval("{a b c => (select a b c)!}");
 
     globals.while = turtle_eval("{p c => if (p!) {c!, while p c} {!}}");
-    globals.rep = turtle_eval("{n f => if (eq? 0 n) {!} {f!, rep (sub n 1) f}}");
+    globals.rep = turtle_eval("{n f => if (le? n 0) {!} {f!, rep (sub n 1) f}}");
     globals.forever = turtle_eval("{f => f!, forever f}");
 
     // Pairs and lists
