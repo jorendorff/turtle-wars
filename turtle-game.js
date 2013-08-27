@@ -165,21 +165,18 @@ var turtle_game = (function () {
             ctx.lineWidth = 1;
         },
 
-        checkHit: function checkHit(turtles) {
-            for (var ii in turtles) {
-                var turtle = turtles[ii];
-                if (turtle !== this.turtle
-                    && Math.pow(turtle.x - this.x, 2) + Math.pow(turtle.y - this.y, 2)
-                       < Math.pow(turtle.r, 2)) {
-                    return turtle;
+        step: function step(turtles) {
+            var p = {x: this.x + this.vx, y: this.y + this.vy};
+            for (var i = 0; i < turtles.length; i++) {
+                var t = turtles[i];
+                if (t !== this.turtle && distToSegmentSquared(t, this, p) < sqr(t.r)) {
+                    // deal damage
+                    return false;
                 }
             }
-            return null;
-        },
-
-        nextPosition: function nextPosition(ctx) {
-            this.x += this.vx;
-            this.y += this.vy;
+            this.x = p.x;
+            this.y = p.y;
+            return true;
         },
 
         isOutOfBounds: function isOutOfBounds(canvas) {
@@ -362,20 +359,17 @@ var turtle_game = (function () {
             var dt = now - this.lastUpdate;
             this.lastUpdate = now;
 
-            var self = this;
-            for (var i = 0; i < dt; i++) {
+            for (var i = 0; this.alive && i < dt; i++) {
                 this.turtles.forEach(function (t) {
                     if (t.thread.alive)
                         t.thread.step();
                 });
-                this.bullets.forEach(function (b) {
-                    b.nextPosition();
-                    if (b.isOutOfBounds(self.canvas) || b.checkHit(self.turtles)) {
-                        var index = self.bullets.indexOf(b);
-                        if (index !== -1)
-                            self.bullets.splice(index, 1);
-                    }
-                });
+                for (var j = 0; j < this.bullets.length;) {
+                    if (!this.bullets[j].step(this.turtles))
+                        this.bullets.splice(j, 1);
+                    else
+                        j++;
+                }
             }
         },
 
