@@ -170,7 +170,7 @@ var turtle_game = (function () {
             for (var i = 0; i < turtles.length; i++) {
                 var t = turtles[i];
                 if (t !== this.turtle && distToSegmentSquared(t, this, p) < sqr(t.r)) {
-                    // deal damage
+                    t.takeDamage();
                     return false;
                 }
             }
@@ -194,7 +194,7 @@ var turtle_game = (function () {
     var TURTLE_SPEED = 1;
     var LookWall = 1, LookTurtle = 2;
 
-    function Turtle(code, color) {
+    function Turtle(name, code, color) {
         var self = this;
 
         // Set up the global functions for turtle_lang.
@@ -256,6 +256,7 @@ var turtle_game = (function () {
             };
         };
 
+        this.name = name;
         this.thread = new turtle_lang.Thread(code, g);
 
         this.x = 0;
@@ -263,6 +264,7 @@ var turtle_game = (function () {
         this.h = 0; // heading
         this.r = 9; // Turtle radius
         this.color = color;
+        this.health = 50;
     }
 
     Turtle.prototype = {
@@ -277,6 +279,14 @@ var turtle_game = (function () {
 
         shoot: function shoot() {
             return new Bullet(this.x, this.y, this.h, this);
+        },
+
+        takeDamage: function takeDamage() {
+            this.health--;
+            if (this.health <= 0) {
+                this.game.stop();
+                alert(this.name + " loses");
+            }
         }
     };
 
