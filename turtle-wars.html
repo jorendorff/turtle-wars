@@ -34,7 +34,9 @@
   </head>
   <body>
     <div id="arena">
-      <h1>turtle wars <button id="fightbtn">Fight!</button></h1>
+      <h1>turtle wars
+        <button id="fightbtn">Fight!</button>
+        <a href="https://github.com/jorendorff/turtle-wars/">readme/forkme</a></h1>
       <canvas id="field" width="800" height="600"></canvas>
     </div>
     <div id="turtle1">
@@ -42,7 +44,7 @@
 >forever {
     fd 10,
     rt 2,
-    if (lt? (tail (look 0 90)) 20) {rt 20} {!},
+    if (lt? (tail (look 0 90)) 50) {rt 20} {!},
     shoot!
 }
       </textarea>
