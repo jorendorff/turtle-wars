@@ -159,7 +159,7 @@ For the time being, here are some useful functions you can write using
   to look straight forward), the nearest thing is the enemy (and not the
   wall).
 
-      enemyAt? = {d w => eq? (head (look d w)) 2},
+  <pre><code>enemyAt? = {d w => eq? (head (look d w)) 2},</code></pre>
 
 * **wd** returns the wall distance&mdash;that is, the distance to the
   nearest wall ahead of us.
@@ -167,10 +167,10 @@ For the time being, here are some useful functions you can write using
   A bit of a bug here: if the nearest thing ahead of us happens to be
   the enemy turtle, this just returns an arbitrary big number.
 
-      wd = {
-        r = look 0 25,
-        if (eq? (tail r) 2) {1000} {head r}
-      },
+  <pre><code>wd = {
+    r = look 0 25,
+    if (eq? (tail r) 2) {1000} {head r}
+  },</code></pre>
 
 
 ## More examples
