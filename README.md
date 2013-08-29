@@ -1,7 +1,7 @@
 # Getting started.
 
 Try it out: load up
-[the web page](https://jorendorff.github.io/turtle-wars/turtle-wars.html)
+[the web page](http://jorendorff.github.io/turtle-wars/turtle-wars.html)
 and click the "Fight!" button.
 
 
