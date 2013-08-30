@@ -345,11 +345,10 @@ var turtle_lang = function () {
                     scope[n.elements[i].name] = undefined;
 
             var i = 0;
-            var go = function to_next(v) {
-                if (i === n.elements.length)
-                    return ctn(v);
-                else
-                    return evaluate_later(n.elements[i++], scope, to_next);
+            var go = function to_next(_) {
+                var expr = n.elements[i++];
+                return evaluate_later(
+                    expr, scope, i === n.elements.length ? ctn : to_next);
             };
             return go(null);
 
