@@ -169,7 +169,7 @@ For the time being, here are some useful functions you can write using
 
   <pre><code>wd = {
     r = look 0 25,
-    if (eq? (tail r) 2) {1000} {head r}
+    if (eq? (head r) 2) {1000} {tail r}
   },</code></pre>
 
 
