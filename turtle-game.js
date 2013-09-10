@@ -269,12 +269,18 @@ var turtle_game = (function () {
 
     Turtle.prototype = {
         paintTo: function paintTo(ctx) {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.h);
             ctx.beginPath();
-            ctx.arc(this.x, this.y, this.r, 0, 2*Math.PI);
+            ctx.arc(this.r, -this.r, this.r, Math.PI / 2, Math.PI);
+            ctx.arc(0, 0, this.r, -Math.PI / 2, Math.PI / 2, true);
+            ctx.arc(this.r, this.r, this.r, Math.PI, -Math.PI / 2);
             ctx.fillStyle = this.color;
             ctx.fill();
             ctx.strokeStyle = '#000';
             ctx.stroke();
+            ctx.restore();
         },
 
         shoot: function shoot() {
